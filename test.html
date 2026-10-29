@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cat Puzzle - Test Suite Runner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background-color: #0f172a;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #1e293b;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    h1 {
+      color: #f97316;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .summary-card {
+      display: flex;
+      gap: 16px;
+      margin: 16px 0;
+      padding: 12px;
+      background: #334155;
+      border-radius: 8px;
+    }
+    .stat {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .stat.pass { color: #4ade80; }
+    .stat.fail { color: #f87171; }
+    #log {
+      background: #090d16;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      max-height: 600px;
+      overflow-y: auto;
+      border: 1px solid #334155;
+    }
+    .log-pass { color: #4ade80; }
+    .log-fail { color: #f87171; font-weight: bold; }
+    .log-info { color: #38bdf8; font-weight: bold; }
+    .btn {
+      background: #f97316;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+    .btn:hover { background: #ea580c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🐱 Cat Puzzle Automated Test Suite</h1>
+    <button id="run-btn" class="btn">▶ Run All Tests</button>
+    <div class="summary-card">
+      <span class="stat">Total: <span id="total-count">0</span></span>
+      <span class="stat pass">Passed: <span id="pass-count">0</span></span>
+      <span class="stat fail">Failed: <span id="fail-count">0</span></span>
+    </div>
+    <div id="log">Click "Run All Tests" or wait for automatic execution...</div>
+  </div>
+
+  <script>
+    window.__errors = [];
+    window.onerror = function(msg, url, line, col, error) {
+      window.__errors.push({ msg, url, line, col, stack: error ? error.stack : '' });
+      const el = document.getElementById('log');
+      if (el) el.innerHTML += '<div class="log-fail">GLOBAL ERROR: ' + msg + ' at line ' + line + '</div>';
+    };
+  </script>
+  <script type="module">
+    import { runAllTests } from './tests/test-suite.js';
+
+    const logEl = document.getElementById('log');
+    const totalEl = document.getElementById('total-count');
+    const passEl = document.getElementById('pass-count');
+    const failEl = document.getElementById('fail-count');
+    const runBtn = document.getElementById('run-btn');
+
+    async function execute() {
+      try {
+        logEl.innerHTML = '';
+        const reporter = (msg) => {
+          const line = document.createElement('div');
+          if (msg.includes('✓')) {
+            line.className = 'log-pass';
+          } else if (msg.includes('✗')) {
+            line.className = 'log-fail';
+          } else if (msg.startsWith('---') || msg.startsWith('Group') || msg.startsWith('===')) {
+            line.className = 'log-info';
+          }
+          line.textContent = msg;
+          logEl.appendChild(line);
+          logEl.scrollTop = logEl.scrollHeight;
+        };
+
+        const res = await runAllTests(reporter);
+        totalEl.textContent = res.total;
+        passEl.textContent = res.passed;
+        failEl.textContent = res.failed;
+      } catch (err) {
+        logEl.innerHTML = '<div class="log-fail">EXECUTION ERROR: ' + (err.stack || err.message) + '</div>';
+      }
+    }
+
+    runBtn.addEventListener('click', execute);
+    execute();
+  </script>
+</body>
+</html>

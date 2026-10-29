@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rakee</title>
+  <meta name="description" content="A delightful, relaxing cat-themed logic grid puzzle game. Place one cat per row, column, and territory without letting them touch!">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐱</text></svg>">
+</head>
+<body>
+  <div id="app" class="game-wrapper">
+    <!-- Confetti Canvas for Victory Celebrations -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Floating Feedback Toast (Rule violations, etc.) -->
+    <div id="feedback-toast" class="toast" role="alert" aria-live="assertive"></div>
+
+    <!-- ==================== SCREEN 1: MAIN MENU ==================== -->
+    <section id="screen-menu" class="screen screen-menu active" aria-label="Main Menu">
+      <div class="menu-container">
+        <!-- Brand Header -->
+        <header class="menu-brand">
+          <div class="brand-logo-bounce">
+            <svg class="brand-cat-logo" viewBox="0 0 100 100" aria-hidden="true">
+              <polygon points="18,42 10,12 42,26" fill="#f97316"/>
+              <polygon points="20,38 14,18 38,27" fill="#fed7aa"/>
+              <polygon points="82,42 90,12 58,26" fill="#f97316"/>
+              <polygon points="80,38 86,18 62,27" fill="#fed7aa"/>
+              <ellipse cx="50" cy="56" rx="36" ry="32" fill="#f97316"/>
+              <ellipse cx="37" cy="52" rx="4.5" ry="6" fill="#1e293b"/>
+              <ellipse cx="63" cy="52" rx="4.5" ry="6" fill="#1e293b"/>
+              <circle cx="38" cy="50" r="1.8" fill="#ffffff"/>
+              <circle cx="64" cy="50" r="1.8" fill="#ffffff"/>
+              <polygon points="50,62 46,58 54,58" fill="#fda4af"/>
+              <path d="M46,64 Q50,68 54,64" fill="none" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="24" y1="58" x2="6" y2="54" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+              <line x1="24" y1="64" x2="8" y2="66" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+              <line x1="76" y1="58" x2="94" y2="54" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+              <line x1="76" y1="64" x2="92" y2="66" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h1 class="brand-title">Cat Puzzle</h1>
+          <p class="brand-tagline">One cat per row, column, and territory. No touching!</p>
+        </header>
+
+        <!-- Player Quick Stats -->
+        <div class="menu-stats-card">
+          <div class="stat-pill">
+            <span class="stat-label">Total Score</span>
+            <span id="menu-total-score" class="stat-val">0</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">Levels Cleared</span>
+            <span id="menu-completed-count" class="stat-val">0 / 24</span>
+          </div>
+        </div>
+
+        <!-- Menu Navigation Buttons -->
+        <nav class="menu-nav">
+          <button id="btn-menu-continue" class="btn btn-primary btn-pulse" style="display: none;">
+            <span class="btn-icon">▶</span> Continue Puzzle
+          </button>
+          <button id="btn-menu-play" class="btn btn-primary">
+            <span class="btn-icon">🎮</span> Play Next Level
+          </button>
+          <button id="btn-menu-levels" class="btn btn-secondary">
+            <span class="btn-icon">🗺️</span> Level Select
+          </button>
+          <button id="btn-menu-generator" class="btn btn-secondary">
+            <span class="btn-icon">✨</span> Custom Puzzle Generator
+          </button>
+          <button id="btn-menu-how-to-play" class="btn btn-outline">
+            <span class="btn-icon">📖</span> How to Play
+          </button>
+          <button id="btn-menu-settings" class="btn btn-outline">
+            <span class="btn-icon">⚙️</span> Settings
+          </button>
+        </nav>
+
+        <footer class="menu-footer">
+          <p>Cat Puzzle • Built with Pure Vanilla Web Technologies</p>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 2: GAME SCREEN ==================== -->
+    <section id="screen-game" class="screen screen-game" aria-label="Game Board Screen">
+      <div class="game-container">
+        <!-- Top HUD Header -->
+        <header class="game-hud">
+          <div class="hud-left">
+            <button id="btn-game-back" class="btn-hud" aria-label="Return to Main Menu" title="Menu">
+              <span class="btn-icon">◀</span>
+            </button>
+            <div class="level-meta">
+              <h2 id="hud-level-title" class="hud-title">Level 1</h2>
+              <span id="hud-level-difficulty" class="badge badge-beginner">Beginner</span>
+            </div>
+          </div>
+
+          <div class="hud-center">
+            <div class="hud-chip" title="Remaining Lives (3 per level)">
+              <span id="hud-lives" class="chip-lives" aria-label="3 lives remaining">
+                <span class="heart-icon active">❤️</span>
+                <span class="heart-icon active">❤️</span>
+                <span class="heart-icon active">❤️</span>
+              </span>
+            </div>
+            <div class="hud-chip" title="Cats placed">
+              <span id="hud-cat-count" class="chip-text">🐾 0 / 10</span>
+            </div>
+            <div class="hud-chip" title="Timer">
+              <span class="chip-icon">⏱</span>
+              <span id="hud-timer" class="chip-text">00:00</span>
+            </div>
+          </div>
+
+          <div class="hud-right">
+            <button id="btn-sound-toggle" class="btn-hud" aria-label="Toggle Sound" title="Sound">
+              <span class="icon">🔊</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Hint Assistance Banner -->
+        <div id="hint-banner" class="hint-banner" role="region" aria-live="polite">
+          <div class="hint-content">
+            <span class="hint-paw">💡</span>
+            <div class="hint-body">
+              <strong id="hint-title">Helpful Paw Hint</strong>
+              <p id="hint-text">Look closely at the highlighted cell!</p>
+            </div>
+          </div>
+          <div class="hint-actions">
+            <button id="btn-hint-auto-place" class="btn btn-sm btn-primary">Place for Me</button>
+            <button id="btn-hint-dismiss" class="btn btn-sm btn-outline">Got it</button>
+          </div>
+        </div>
+
+        <!-- Puzzle Board Container -->
+        <main class="board-area">
+          <div class="board-frame">
+            <!-- Top Column Headers -->
+            <div id="col-headers" class="col-headers-track" aria-hidden="true"></div>
+
+            <div class="board-middle-row">
+              <!-- Left Row Headers -->
+              <div id="row-headers" class="row-headers-track" aria-hidden="true"></div>
+
+              <!-- Main Interactive Grid -->
+              <div id="puzzle-grid" class="puzzle-grid" role="grid" aria-label="Cat puzzle grid"></div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Game Interaction Toolbar -->
+        <footer class="game-toolbar">
+          <!-- Control Guide -->
+          <div class="control-guide-chip" role="status" aria-label="Controls guide" title="Controls Guide">
+            <span class="guide-item"><span class="guide-badge">Click</span> ✕</span>
+            <span class="guide-divider">•</span>
+            <span class="guide-item"><span class="guide-badge">2× Click</span> 🐱</span>
+          </div>
+
+          <!-- Mode Switcher Override (Optional) -->
+          <div class="mode-switch-group" role="group" aria-label="Placement Mode">
+            <button id="btn-mode-cat" class="mode-btn active" title="Cat placement mode">
+              <span class="mode-icon">🐱</span> Cat
+            </button>
+            <button id="btn-mode-mark" class="mode-btn" title="Mark cell empty (cross)">
+              <span class="mode-icon">✕</span> Mark
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="actions-group">
+            <button id="btn-undo" class="btn-action" title="Undo Last Move (U)">
+              <span class="action-icon">↩</span> Undo
+            </button>
+            <button id="btn-hint" class="btn-action btn-action-hint" title="Get a Hint (H)">
+              <span class="action-icon">💡</span> Hint
+            </button>
+            <button id="btn-restart" class="btn-action" title="Restart Level (R)">
+              <span class="action-icon">🔄</span> Restart
+            </button>
+          </div>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 3: LEVEL SELECT ==================== -->
+    <section id="screen-levels" class="screen screen-levels" aria-label="Level Select Screen">
+      <div class="levels-container">
+        <header class="levels-header">
+          <button id="btn-levels-back" class="btn-hud" aria-label="Back to Menu">
+            <span class="btn-icon">◀</span>
+          </button>
+          <h2 class="levels-title">Select Level</h2>
+          <div style="width: 40px;"></div>
+        </header>
+
+        <!-- Difficulty Filter Tabs -->
+        <div id="level-filter-tabs" class="filter-tabs" role="tablist">
+          <button class="filter-tab active" data-filter="All">All</button>
+          <button class="filter-tab" data-filter="Beginner">Beginner</button>
+          <button class="filter-tab" data-filter="Easy">Easy</button>
+          <button class="filter-tab" data-filter="Medium">Medium</button>
+          <button class="filter-tab" data-filter="Hard">Hard</button>
+          <button class="filter-tab" data-filter="Expert">Expert</button>
+          <button class="filter-tab" data-filter="Master">Master</button>
+        </div>
+
+        <!-- Level Cards Grid -->
+        <div id="level-grid" class="level-grid"></div>
+      </div>
+    </section>
+
+    <!-- ==================== MODAL: HOW TO PLAY (WELCOME POP-UP) ==================== -->
+    <div id="modal-how-to-play" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rule-modal-title">
+      <div class="modal-card modal-card-how-to-play">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="modal-title-emoji">🐱</span>
+            <h3 id="rule-modal-title" class="modal-title">How to Play Purrfect Grid</h3>
+          </div>
+          <button class="modal-close" data-close-modal aria-label="Close dialog">&times;</button>
+        </header>
+        <div class="modal-body how-to-play-body">
+          <!-- 4 Core Rules in 2x2 Grid -->
+          <div class="rules-grid">
+            <div class="rule-box">
+              <div class="rule-box-header">
+                <span class="rule-num">1</span>
+                <span class="rule-icon">↔️</span>
+                <strong>1 Cat / Row</strong>
+              </div>
+              <p>Exactly 1 cat in each horizontal row.</p>
+            </div>
+
+            <div class="rule-box">
+              <div class="rule-box-header">
+                <span class="rule-num">2</span>
+                <span class="rule-icon">↕️</span>
+                <strong>1 Cat / Column</strong>
+              </div>
+              <p>Exactly 1 cat in each vertical column.</p>
+            </div>
+
+            <div class="rule-box">
+              <div class="rule-box-header">
+                <span class="rule-num">3</span>
+                <span class="rule-icon">🎨</span>
+                <strong>1 / Territory</strong>
+              </div>
+              <p>Exactly 1 cat in each colored region.</p>
+            </div>
+
+            <div class="rule-box">
+              <div class="rule-box-header">
+                <span class="rule-num">4</span>
+                <span class="rule-icon">🐾</span>
+                <strong>No Touching</strong>
+              </div>
+              <p>Cats cannot touch, even diagonally!</p>
+            </div>
+          </div>
+
+          <!-- Controls & Lives Banner -->
+          <div class="controls-banner">
+            <div class="control-col">
+              <span class="ctrl-tag">👆 Click</span>
+              <span>Mark Cross <strong>✕</strong></span>
+            </div>
+            <div class="control-col-divider"></div>
+            <div class="control-col">
+              <span class="ctrl-tag cat-tag">✌️ 2× Click</span>
+              <span>Place Cat <strong>🐱</strong></span>
+            </div>
+            <div class="control-col-divider"></div>
+            <div class="control-col">
+              <span class="ctrl-tag lives-tag">❤️❤️❤️</span>
+              <span>3 Lives / Level</span>
+            </div>
+          </div>
+
+          <div class="quick-tip-note">
+            💡 <em>Double-clicking a wrong spot shows a red mark and costs 1 life. Validated cells never cost extra lives!</em>
+          </div>
+        </div>
+        <footer class="modal-footer how-to-play-footer">
+          <label class="popup-pref-label" title="Do not automatically show this popup on refresh">
+            <input type="checkbox" id="chk-dont-show-startup">
+            <span>Don't show on startup</span>
+          </label>
+          <button class="btn btn-primary" id="btn-how-to-play-play" data-close-modal>Let's Play! 🐾</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: WIN CELEBRATION ==================== -->
+    <div id="modal-win" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="win-modal-title">
+      <div class="modal-card modal-card-win">
+        <div class="win-crown">👑</div>
+        <h3 id="win-modal-title" class="win-title">Purrfect Logic!</h3>
+        <p id="win-level-name" class="win-subtitle">Level 1 Cleared</p>
+
+        <!-- Star Rating Animation -->
+        <div id="win-stars" class="win-stars-row">
+          <span class="star-icon earned">★</span>
+          <span class="star-icon earned">★</span>
+          <span class="star-icon earned">★</span>
+        </div>
+
+        <!-- Score Breakdown Table -->
+        <div class="win-score-box">
+          <div class="score-row total">
+            <span>Total Score Earned</span>
+            <strong id="win-score-total">1,250</strong>
+          </div>
+          <hr class="score-divider">
+          <div class="score-row">
+            <span>Base Completion</span>
+            <span id="win-base-score">+500</span>
+          </div>
+          <div class="score-row">
+            <span>Time (<span id="win-time">00:45</span> / Par <span id="win-par-time">01:00</span>)</span>
+            <span id="win-time-bonus">+150</span>
+          </div>
+          <div class="score-row">
+            <span>No-Hint Bonus</span>
+            <span id="win-no-hint-bonus">+300</span>
+          </div>
+          <div class="score-row">
+            <span>Deductions</span>
+            <span id="win-deductions">-0</span>
+          </div>
+        </div>
+
+        <footer class="modal-footer win-actions">
+          <button id="btn-win-next" class="btn btn-primary">
+            Next Level ➔
+          </button>
+          <button id="btn-win-replay" class="btn btn-secondary">
+            Replay ↺
+          </button>
+          <button id="btn-win-levels" class="btn btn-outline">
+            Level Select ☰
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: PUZZLE GENERATOR ==================== -->
+    <div id="modal-generator" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="gen-modal-title">
+      <div class="modal-card">
+        <header class="modal-header">
+          <h3 id="gen-modal-title" class="modal-title">Procedural Puzzle Generator</h3>
+          <button class="modal-close" data-close-modal aria-label="Close dialog">&times;</button>
+        </header>
+        <div class="modal-body">
+          <p>Generate fresh, verified puzzles with guaranteed unique solutions on demand!</p>
+
+          <div class="form-group">
+            <label for="gen-size-select" class="form-label">Grid Size (N × N)</label>
+            <select id="gen-size-select" class="form-control">
+              <option value="4">4 × 4 (Beginner - 4 Cats)</option>
+              <option value="5">5 × 5 (Easy - 5 Cats)</option>
+              <option value="6" selected>6 × 6 (Easy/Medium - 6 Cats)</option>
+              <option value="7">7 × 7 (Medium - 7 Cats)</option>
+              <option value="8">8 × 8 (Hard - 8 Cats)</option>
+              <option value="9">9 × 9 (Expert - 9 Cats)</option>
+              <option value="10">10 × 10 (Master - 10 Cats)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="gen-seed-input" class="form-label">Random Seed (Optional for reproducibility)</label>
+            <input type="text" id="gen-seed-input" class="form-control" placeholder="e.g. whiskers-42">
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button id="btn-generate-submit" class="btn btn-primary">
+            ✨ Generate & Play
+          </button>
+          <button class="btn btn-outline" data-close-modal>Cancel</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: SETTINGS ==================== -->
+    <div id="modal-settings" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <div class="modal-card">
+        <header class="modal-header">
+          <h3 id="settings-modal-title" class="modal-title">Game Settings</h3>
+          <button class="modal-close" data-close-modal aria-label="Close dialog">&times;</button>
+        </header>
+        <div class="modal-body">
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Sound Effects</div>
+              <div class="setting-desc">Cute audio feedback for placements and wins.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-sound" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">High Contrast Mode</div>
+              <div class="setting-desc">Displays clear region letter watermarks and bolder borders.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-high-contrast">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Reduced Motion</div>
+              <div class="setting-desc">Minimizes animations and confetti.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-reduced-motion">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <hr class="setting-divider">
+
+          <div class="setting-danger-zone">
+            <h4>Data Management</h4>
+            <p>Erase local scores and locked levels to start fresh.</p>
+            <button id="btn-reset-progress" class="btn btn-danger btn-sm">Reset All Progress</button>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-primary" data-close-modal>Save & Close</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: GAME OVER (OUT OF LIVES) ==================== -->
+    <div id="modal-game-over" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+      <div class="modal-card modal-card-sm modal-card-game-over">
+        <div class="game-over-avatar">😿</div>
+        <h3 id="game-over-title" class="game-over-title">Out of Lives!</h3>
+        <p class="game-over-msg">You used up all 3 lives with wrong cat placements. Every clever puzzle cat deserves another try!</p>
+        <footer class="modal-footer game-over-actions">
+          <button id="btn-game-over-retry" class="btn btn-primary">
+            🔄 Try Again
+          </button>
+          <button id="btn-game-over-levels" class="btn btn-outline">
+            ☰ Level Select
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: CONFIRMATION ==================== -->
+    <div id="modal-confirm" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-card modal-card-sm">
+        <h3 id="confirm-title" class="modal-title">Are you sure?</h3>
+        <p id="confirm-message" class="modal-text">This action cannot be undone.</p>
+        <footer class="modal-footer">
+          <button id="btn-confirm-yes" class="btn btn-danger">Yes, Proceed</button>
+          <button class="btn btn-outline" data-close-modal>Cancel</button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entry Script (ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
